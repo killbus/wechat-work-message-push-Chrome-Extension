@@ -1,8 +1,8 @@
 {
-    "name": "Bark",
+    "name": "Wework Pusher",
     "version": "1.2.1",
     "manifest_version": 2,
-    "description": "push to iPhone",
+    "description": "push to wechat work",
     "permissions": [
         "*://*/*",
         "activeTab",
@@ -37,6 +37,6 @@
             "48": "bark_48.png",
             "128": "bark_128.png"
         },
-        "default_title": "Bark"
+        "default_title": "Wework Pusher"
     }
 }

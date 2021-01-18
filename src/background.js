@@ -1,17 +1,8 @@
-var auto_copy_flag = "0"
-
-
 function global_push(response, tab) {
     chrome.storage.sync.get({
-        default_push_content: "clipboard",
-        auto_copy: "no"
-    }, function(items) {
+		default_push_content: "clipboard"
+	}, function(items) {
         console.log(items);
-        if (items.auto_copy === "yes") {
-            auto_copy_flag = "1"
-        } else {
-            auto_copy_flag = "0"
-        }
         //if default is URL, push URL
         if (items.default_push_content === "URL") {
             console.log(response);
@@ -42,15 +33,24 @@ function getword(info, tab) {
 	console.log("menu " + info.menuItemId + " was clicked.");
 	console.log("Word " + info.selectionText + " was clicked.");
 	console.log(info);
-	if (info.mediaType == "image") {
-		sendMsg(info.srcUrl, info.menuItemId, msgType="image");
-	} else {
-		if (typeof info.selectionText == 'undefined') {
-			global_push(null);
-		} else {
-			sendMsg(info.selectionText, info.menuItemId);
-		}
-	}
+
+	/* Chrome converts all linefeeds into spaces in info.selectionText,
+	so we need to get the text from the active tab instead with this code: */
+	chrome.tabs.executeScript( {
+		code: "window.getSelection().toString();"
+		}, function(selection) {
+			// selected contains text including line breaks
+			var selected = selection[0];
+			if (info.mediaType == "image") {
+				sendMsg(info.srcUrl, info.menuItemId, msgType="image");
+			} else {
+				if (typeof info.selectionText == 'undefined') {
+					global_push(null);
+				} else {
+					sendMsg(selected, info.menuItemId);
+				}
+			}
+	});
 	
 }
 
@@ -87,9 +87,9 @@ function getClipboardData() {
 
 function sendMsg(content, full_server_url = "", msgType = "normal") {
 	chrome.storage.sync.get({
-		server_urls: []
+		entrypoints: []
 	}, function (items) {
-		if (items.server_urls === '' | items.server_urls.length === 0) {
+		if (items.entrypoints === '' | items.entrypoints.length === 0) {
 			alert("please set server_url in options!");
 			chrome.tabs.create({
 				url: "options.html"
@@ -97,10 +97,15 @@ function sendMsg(content, full_server_url = "", msgType = "normal") {
 			// chrome.tabs.create({ 'url': 'chrome://extensions/?options=' + chrome.runtime.id });
 		} else {
 			if (full_server_url === "") {
-				full_server_url = items.server_urls[0].server_url;
+				full_server_url = items.entrypoints[0].server_url;
+				token = items.entrypoints[0].server_token;
 			}
 			if (full_server_url.startsWith("selection#")) {
-				full_server_url = full_server_url.replace(/selection#/g, "")
+				full_server_url = full_server_url.replace(/selection#/g, "");
+				entrypoint = items.entrypoints.find(entrypoint => {
+					return entrypoint.server_url == full_server_url
+				})
+				token = entrypoint.server_token;
 			}
 
 			console.log(full_server_url);
@@ -112,74 +117,36 @@ function sendMsg(content, full_server_url = "", msgType = "normal") {
 					});
 				};
 
-			if (full_server_url.startsWith("http") || full_server_url.startsWith("https")) {
-				// iPhone push
-				httpGetAsync(full_server_url + encodeURIComponent(content) + "?automaticallyCopy=" + auto_copy_flag, notify_callback);
-			} else {
-				// Android push
-				pushAndroidMsg(full_server_url, content, notify_callback, msgType);
-			}
-
+				httpGetAsync(full_server_url, notify_callback, token, encodeURIComponent(content));
 			
 		};
 	});
 }
 
-function pushAndroidMsg(theToken, content, callback, msgType="normal") {
-	var fcmServerURL = "https://fcm.googleapis.com/fcm/send"
+function httpGetAsync(theUrl, callback, token, content="") {
 	var xmlHttp = new XMLHttpRequest();
 	xmlHttp.onreadystatechange = function () {
 		if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
 			callback(xmlHttp.responseText);
 	}
-
-	xmlHttp.open("POST", fcmServerURL, true);
-	//发送合适的请求头信息
-	xmlHttp.setRequestHeader("Content-type", "application/json");
-	xmlHttp.setRequestHeader("Authorization", "key=AIzaSyAd-JC3NxVeGRHyo5ZZB2BUmhSA7Z_IqHY")
-
-	var sendData = {
-		"to": theToken,
-		"collapse_key": "type_a",
-		"data": {
-			"body": content,
-			"title": "PushMessage",
-			"autoCopy": auto_copy_flag,
-			"msgType": msgType
-		}
-	}
-	xmlHttp.send(JSON.stringify(sendData));
-
-}
-
-
-function httpGetAsync(theUrl, callback) {
-	var xmlHttp = new XMLHttpRequest();
-	xmlHttp.onreadystatechange = function () {
-		if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-			callback(xmlHttp.responseText);
-	}
-	xmlHttp.open("GET", theUrl, true); // true for asynchronous 
-	xmlHttp.send(null);
+	xmlHttp.open("POST", theUrl, true); // true for asynchronous 
+	xmlHttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+	xmlHttp.setRequestHeader("token", token);
+	console.log(content);
+	xmlHttp.send(`message=${content}`);
 }
 
 function registerContextMenus() {
 	chrome.storage.sync.get({
-		server_urls: [],
-		default_push_content: "clipboard",
-		auto_copy: "no"
+		entrypoints: [],
+		default_push_content: "clipboard"
 	}, function (items) {
 		console.log(items);
-		if (items.auto_copy === "yes") {
-			auto_copy_flag = "1"
-		} else {
-			auto_copy_flag = "0"
-		}
 		chrome.contextMenus.removeAll(function() {
 			console.log("items" + items[0]);
-			for (const it of items.server_urls) {
+			for (const it of items.entrypoints) {
 				chrome.contextMenus.create({
-					title: "Push To Device " + it.server_name,
+					title: "Push To Entrypoint " + it.server_name,
 					// contexts: ["selection"],
 					onclick: getword,
 					id: it.server_url
@@ -188,9 +155,9 @@ function registerContextMenus() {
 		});
 		chrome.contextMenus.removeAll(function() {
 			console.log("items" + items[0]);
-			for (const it of items.server_urls) {
+			for (const it of items.entrypoints) {
 				chrome.contextMenus.create({
-					title: "Send To Device " + it.server_name,
+					title: "Send To Entrypoint " + it.server_name,
 					contexts: ["selection", "image"],
 					onclick: getword,
 					id: "selection#" + it.server_url

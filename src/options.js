@@ -1,8 +1,8 @@
 var data = {
-  serverURLs: []
+  entrypoints: []
 }
 var data = {}
-var dataServerURLs = []
+var dataEntrypoints = []
 
 
 /**
@@ -44,56 +44,15 @@ Object.defineProperty(data, 'defaultPushContent', {
 })
 
 /**
- * autocopy
+ * set entrypoints
  */
-
- var radios = document.getElementsByName("auto_copy");
- for(i in radios) {
-   radios[i].onclick = function(it) {
-     data.autoCopy = this.value;
-   }
- }
-
- Object.defineProperty(data, 'autoCopy', {
-   configurable: true,
-   get: function() {
-     return autoCopy;
-   },
-   set: function(value) {
-     console.log(value);
-     autoCopy = value;
-     document.getElementById(value).checked=true;
-
-     //save to chrome.storage
-     chrome.storage.sync.set({
-       auto_copy: this.autoCopy,
-     }, function() {
-       // Update status to let user know options were saved.
-       var status = document.getElementById('status');
-       status.textContent = 'Options saved.';
-       setTimeout(function() {
-         status.textContent = '';
-       }, 200);
-     });
-
-     // Update status to let user know options were saved.
-     chrome.runtime.sendMessage({greeting: "hello"}, function(response) {
-       console.log(response.farewell);
-     });
-   }
- })
-
-
-/**
- * set serverURLs
- */
-Object.defineProperty(data, 'serverURLs', {
+Object.defineProperty(data, 'entrypoints', {
     configurable: true,
     get: function() {
-      return dataServerURLs;
+      return dataEntrypoints;
     },
     set: function(value) {
-      dataServerURLs = value;
+      dataEntrypoints = value;
       var str = '<ul>';
       value.forEach(function(it) {
         str += '<li class="url"><u>' + it.server_name +'</u> <button>delete</button> <div style="width:500px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"><strong>'+ it.server_url + '</strong></div></li>';
@@ -106,7 +65,7 @@ Object.defineProperty(data, 'serverURLs', {
 
       //save to chrome.storage
       chrome.storage.sync.set({
-        server_urls: this.serverURLs,
+        entrypoints: this.entrypoints,
       }, function() {
         // Update status to let user know options were saved.
         chrome.runtime.sendMessage({greeting: "hello"}, function(response) {
@@ -123,21 +82,6 @@ Object.defineProperty(data, 'serverURLs', {
     }
 })
 
-/**
- * select device type
- */
-var radios = document.getElementsByName("device");
-for(i in radios) {
-  radios[i].onclick = function(it) {
-    if (this.value === "Android") {
-      document.getElementById("server_url").placeholder = "Android FCM Token"
-    }
-    if (this.value === "iPhone") {
-      document.getElementById("server_url").placeholder = "Bark Push URL: https://day.app/xxxkeyxxxx/"
-    }
-  }
-}
-
 function ValidURL(str) {
   var regex = /(http|https):\/\/(\w+:{0,1}\w*)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%!\-\/]))?/;
   if(!regex .test(str)) {
@@ -152,22 +96,21 @@ function ValidURL(str) {
 // stored in chrome.storage.
 function restore_options() {
   chrome.storage.sync.get({
-    server_urls: [],
+    entrypoints: [],
     default_push_content: "clipboard",
     auto_copy: "no"
   }, function(items) {
-    data.serverURLs = items.server_urls;
+    data.entrypoints = items.entrypoints;
     data.defaultPushContent = items.default_push_content;
-    data.autoCopy = items.auto_copy;
-    // document.getElementById('server_url').value = items.server_urls;
+    // document.getElementById('server_url').value = items.entrypoints;
   });
 }
 
 //delete server urls
 function delete_server(e) {
   e.preventDefault();
-  dataServerURLs.splice($(this).parent().index(), 1);
-  data.serverURLs = dataServerURLs;
+  dataEntrypoints.splice($(this).parent().index(), 1);
+  data.entrypoints = dataEntrypoints;
   $(this).parent().remove();
 }
 
@@ -175,19 +118,13 @@ function delete_server(e) {
 function addServer() {
   var server_name = document.getElementById('server_name').value;
   var server_url = document.getElementById('server_url').value;
-
-  if (document.getElementsByName("device")[1].checked == true) {
-    console.log('Valid Android Token');
-    data.serverURLs.push({"server_name": server_name, "server_url": server_url});
-    data.serverURLs = data.serverURLs
-    return
-  }
+  var server_token = document.getElementById('server_token').value;
 
   if (ValidURL(server_url)) { //check url if valid 
 
     console.log('Valid Server');
-    data.serverURLs.push({"server_name": server_name, "server_url": server_url});
-    data.serverURLs = data.serverURLs
+    data.entrypoints.push({"server_name": server_name, "server_url": server_url, "server_token": server_token});
+    data.entrypoints = data.entrypoints
   }
 }
 

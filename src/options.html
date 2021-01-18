@@ -2,7 +2,7 @@
 <html>
 
 <head>
-	<title>Bark Settings</title>
+	<title>Settings</title>
 
 	<style>
 		#status {
@@ -31,42 +31,19 @@
 		<label for="URL">Current page URL</label>
 	</div>
 	<hr>
-	<h3>AutoCopy</h3>
-	<div>
-		<input type="radio" id="yes" name="auto_copy" value="yes">
-		<label for="yes">Yes</label>
-	</div>
-
-	<div>
-		<input type="radio" id="no" name="auto_copy" value="no">
-		<label for="no">No</label>
-	</div>
-	<hr>
-	<h4>Tips</h4>
-	<ul>
-		<li>Now also supports Android devices, you can download the mobile applications from <a href="https://github.com/xlvecle/PushLite" target=”_blank”>here</a></li>
-		<li>If you have multiple addresses set up, plese use right-click menu to push messages to the specified device.</li>
-	</ul>
-	<h3>Devices</h3>
+	<h3>Entrypoints</h3>
 	<div id="urls">
 	</div>
 
 	<hr>
 	<h5>
-		New device push URL:
+		New entrypoint push URL:
 	</h5>
-	<div>
-		<input type="radio" id="iPhone" name="device" value="iPhone" checked="checked">
-		<label for="iPhone">iPhone</label>
-	</div>
-	<div>
-		<input type="radio" id="Android" name="device" value="Android">
-		<label for="Android">Android</label>
-	</div>
 	<p>
 		<label>
 			<input type="" name="" id="server_name" style="width: 100px" placeholder="Alias">
-			<input type="" name="" id="server_url" style="width: 300px" placeholder="https://day.app/xxxkeyxxxx/">
+			<input type="" name="" id="server_url" style="width: 300px" placeholder="http://127.0.0.1:60009/push">
+			<input type="" name="" id="server_token" style="width: 300px" placeholder="Token">
 			<button id="add">Add</button>
 		</label>
 	</p>
